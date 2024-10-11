@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["referentialActions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(cuid())
+  username          String        @unique
+  email             String        @unique
+  password          String
+  name              String
+  createdAt         DateTime      @default(now())
+  token             String?
+  AuthOption        AuthOption
+  watchlists        Watchlist[]
+  alerts            Alert[]
+  sessions          Session[]
+  portfolios        Portfolio[]
+  transactions      Transaction[]
+  orderBookUpdated  DateTime      @default(now())
+}
+
+enum AuthOption {
+  Google
+  Github
+  Credentials
+  Otp
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Watchlist {
+  id         String     @id @default(cuid())
+  userId     String
+  name       String
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets     WatchlistAsset[]
+}
+
+model WatchlistAsset {
+  id         String   @id @default(cuid())
+  watchlistId String
+  assetId    Int
+  watchlist  Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  asset      Asset     @relation("AssetWatchlist",fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model Asset {
+  id           Int          @id @default(autoincrement())
+  assetType    Asset_Type
+  exchange     Exchanges
+  assetSymbol  String
+  watchlistAssets WatchlistAsset[] @relation("AssetWatchlist")
+  alerts       Alert[]        @relation("AssetAlert")
+}
+
+enum Asset_Type {
+  STOCK
+  CRYPTO
+  MUTUALFUND
+}
+
+enum Alert_Method {
+  EMAIL
+  TELEGRAM
+  PUSH
+  WHATSAPP
+}
+
+enum Exchanges {
+  NSE
+  BSE
+  CRYPTO
+}
+
+model Alert {
+  id             String     @id @default(cuid())
+  userId         String
+  alertName      String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetId        Int
+  asset          Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade, name: "AssetAlert")
+  conditionType  String
+  targetValue    Decimal    @db.Decimal(18, 8)
+  alertMethod    Alert_Method
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+}
+
+model Portfolio {
+  id           String      @id @default(cuid())
+  userId       String
+  createdAt    DateTime    @default(now())
+  name         String
+  holdings     Holding[]
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Holding {
+  id              String      @id @default(cuid())
+  portfolioId     String
+  assetType       Asset_Type
+  exchange        Exchanges
+  assetSymbol     String
+  quantity        Decimal     @db.Decimal(18, 8)
+  averagePrice    Decimal     @db.Decimal(18, 8)
+  createdAt       DateTime    @default(now())
+  orderCompleted  Boolean     @default(false)
+  transactions    Transaction[]
+  portfolio       Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id         String     @id @default(cuid())
+  holdingId  String
+  userId     String
+  succeed    Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  amount     Decimal    @db.Decimal(18, 8)
+  holding    Holding    @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
