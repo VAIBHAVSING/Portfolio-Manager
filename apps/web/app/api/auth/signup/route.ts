@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ERROR_NAME, ERROR_CODE } from '@/config/error.config';
 import { SignupInterface, SignupSchema } from '@/lib/Validator/SignupSchema';
-import { Prisma } from '@/app/lib/generateclient';
+import { Prisma } from '@/lib/generateclient';
 import { hash } from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { Session } from 'inspector/promises';

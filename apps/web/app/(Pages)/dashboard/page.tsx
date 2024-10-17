@@ -44,6 +44,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useSession } from "next-auth/react"
+import { redirect } from "next/navigation"
 
 ChartJS.register(
   ArcElement,
@@ -139,189 +141,188 @@ export default function InteractiveFinanceDashboard() {
   const [activeDialog, setActiveDialog] = useState<string | null>(null)
 
   const totalInvestments = investmentData?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
-const totalLoans = loanData?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
-const totalMutualFunds = mutualFundData?.reduce((sum, fund) => sum + fund.value, 0) || 0;
-const totalStocks = stockData?.reduce((sum, stock) => sum + stock.value, 0) || 0;
-const netWorth = totalInvestments + totalMutualFunds + totalStocks - totalLoans;
-
+  const totalLoans = loanData?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
+  const totalMutualFunds = mutualFundData?.reduce((sum, fund) => sum + fund.value, 0) || 0;
+  const totalStocks = stockData?.reduce((sum, stock) => sum + stock.value, 0) || 0;
+  const netWorth = totalInvestments + totalMutualFunds + totalStocks - totalLoans;
   return (
     <div className="container mx-auto p-4">
       <Dialog open={!!activeDialog} onOpenChange={() => setActiveDialog(null)}>
-      <h1 className="text-3xl font-bold mb-6">
-        Interactive Personal Finance Dashboard
-      </h1>
+        <h1 className="text-3xl font-bold mb-6">
+          Interactive Personal Finance Dashboard
+        </h1>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Total Net Worth</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold mb-4">
-            ₹{netWorth.toLocaleString()}
-          </div>
-          <Line data={netWorthHistory} options={{ responsive: true }} />
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Investments by Sector</CardTitle>
+            <CardTitle>Total Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
-            <Pie data={investmentData} />
-            <div className="mt-4 text-center">
-              <p className="font-semibold">
-                Total: ₹{totalInvestments.toLocaleString()}
-              </p>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setActiveDialog("investments")}
-                >
-                  View Details
-                </Button>
-              </DialogTrigger>
+            <div className="text-4xl font-bold mb-4">
+              ₹{netWorth.toLocaleString()}
             </div>
+            <Line data={netWorthHistory} options={{ responsive: true }} />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Loans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Pie data={loanData} />
-            <div className="mt-4 text-center">
-              <p className="font-semibold">
-                Total: ₹{totalLoans.toLocaleString()}
-              </p>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setActiveDialog("loans")}
-                >
-                  View Details
-                </Button>
-              </DialogTrigger>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Investments by Sector</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Pie data={investmentData} />
+              <div className="mt-4 text-center">
+                <p className="font-semibold">
+                  Total: ₹{totalInvestments.toLocaleString()}
+                </p>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setActiveDialog("investments")}
+                  >
+                    View Details
+                  </Button>
+                </DialogTrigger>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>This Month's Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Bar
-              data={expensesData}
-              options={{
-                scales: {
-                  y: {
-                    beginAtZero: true,
+          <Card>
+            <CardHeader>
+              <CardTitle>Loans</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Pie data={loanData} />
+              <div className="mt-4 text-center">
+                <p className="font-semibold">
+                  Total: ₹{totalLoans.toLocaleString()}
+                </p>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setActiveDialog("loans")}
+                  >
+                    View Details
+                  </Button>
+                </DialogTrigger>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>This Month's Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Bar
+                data={expensesData}
+                options={{
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                    },
                   },
-                },
-              }}
-            />
-            <div className="mt-4 text-center">
-              <p className="font-semibold">
-                Total: ₹
-                {expensesData.datasets[0]?.data
-                  .reduce((a, b) => a + b, 0)
-                  .toLocaleString()}
-              </p>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setActiveDialog("expenses")}
-                >
-                  View Details
-                </Button>
-              </DialogTrigger>
-            </div>
+                }}
+              />
+              <div className="mt-4 text-center">
+                <p className="font-semibold">
+                  Total: ₹
+                  {expensesData.datasets[0]?.data
+                    .reduce((a, b) => a + b, 0)
+                    .toLocaleString()}
+                </p>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setActiveDialog("expenses")}
+                  >
+                    View Details
+                  </Button>
+                </DialogTrigger>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Mutual Fund Portfolio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="value">
+              <TabsList>
+                <TabsTrigger value="value">Current Value</TabsTrigger>
+                <TabsTrigger value="todayGain">Today's Gain</TabsTrigger>
+                <TabsTrigger value="totalGain">Total Gain</TabsTrigger>
+              </TabsList>
+              <TabsContent value="value">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fund Name</TableHead>
+                      <TableHead>Current Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mutualFundData.map((fund, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{fund.name}</TableCell>
+                        <TableCell>₹{fund.value.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+              <TabsContent value="todayGain">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fund Name</TableHead>
+                      <TableHead>Today's Gain</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mutualFundData.map((fund, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{fund.name}</TableCell>
+                        <TableCell
+                          className={
+                            fund.todayGain >= 0 ? "text-green-600" : "text-red-600"
+                          }
+                        >
+                          ₹{fund.todayGain.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+              <TabsContent value="totalGain">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fund Name</TableHead>
+                      <TableHead>Total Gain</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mutualFundData.map((fund, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{fund.name}</TableCell>
+                        <TableCell>₹{fund.totalGain.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
-      </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Mutual Fund Portfolio</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="value">
-            <TabsList>
-              <TabsTrigger value="value">Current Value</TabsTrigger>
-              <TabsTrigger value="todayGain">Today's Gain</TabsTrigger>
-              <TabsTrigger value="totalGain">Total Gain</TabsTrigger>
-            </TabsList>
-            <TabsContent value="value">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fund Name</TableHead>
-                    <TableHead>Current Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mutualFundData.map((fund, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{fund.name}</TableCell>
-                      <TableCell>₹{fund.value.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="todayGain">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fund Name</TableHead>
-                    <TableHead>Today's Gain</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mutualFundData.map((fund, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{fund.name}</TableCell>
-                      <TableCell
-                        className={
-                          fund.todayGain >= 0 ? "text-green-600" : "text-red-600"
-                        }
-                      >
-                        ₹{fund.todayGain.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="totalGain">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fund Name</TableHead>
-                    <TableHead>Total Gain</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mutualFundData.map((fund, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{fund.name}</TableCell>
-                      <TableCell>₹{fund.totalGain.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
 
-      
         <DialogContent>
           <DialogHeader>
             <DialogTitle>

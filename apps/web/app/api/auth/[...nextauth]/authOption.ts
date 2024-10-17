@@ -3,13 +3,13 @@ import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/email";
 import { ErrorHandler } from '@/lib/error';
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import { compare } from "bcryptjs";
 import { Prisma } from "../../../../lib/generateclient";
 import { signinSchema } from "@/lib/Validator/siginSchema";
 
 // NextAuth configuration
-const handler= NextAuth({
+const authOptions:NextAuthOptions={
     providers: [
         CredentialsProvider({
             name: "credentials",
@@ -95,34 +95,34 @@ const handler= NextAuth({
     },
     callbacks: {
         async jwt({ token, user }) {
-            // Check if user is available (on sign-in)
             if (user) {
-              console.log("User data:", user); // Log user data to check available fields
-              token.id = user.id ;  // Use user.id if available, fallback to sub
-              token.email = user.email;
-              token.username = user.username ; // Adjust if username is not available
-              token.name = user.name;
+                // Set token properties based on the user object
+                token.id = user.id;  // Make sure `user.id` is not undefined
+                token.email = user.email;
+                token.username = user.username;
+                token.name = user.name;
             }
             return token;
-          },
-          async session({ session, token }) {
+        },
+        async session({ session, token }) {
+            // Pass token data to session.user
             if (token) {
-              session.user = {
-                id: token.id,
-                email: token.email,
-                username: token.username,
-                name: token.name,
-                image: token.image || null, // Optional image field
-              };
+                session.user = {
+                    id: token.id,  // Ensure that `token.id` is present here
+                    email: token.email,
+                    username: token.username,
+                    name: token.name,
+                    image: token.image || null, // Optional image field
+                };
             }
             return session;
-          },
-    },
+        },
+    },    
     pages: {
         signIn: "/signin",
         newUser: "/signup"
     },
     secret: process.env.NEXTAUTH_SECRET,
     debug: true,
-});
-export { handler as GET, handler as POST,handler as handler };
+};
+export default NextAuth(authOptions);

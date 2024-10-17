@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 const navItems = [
   { name: "Home", href: "/" },
   { name: "Dashboard", href: "/dashboard" },
-  { name: "News", href: "/news" },
+  { name: "Alerts", href: "/alerts" },
   { name: "Watchlist", href: "/watchlist" },
   { name: "Portfolios", href: "/portfolios" },
 ]
