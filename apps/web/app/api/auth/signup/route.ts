@@ -5,8 +5,6 @@ import { ERROR_NAME, ERROR_CODE } from '@/config/error.config';
 import { SignupInterface, SignupSchema } from '@/lib/Validator/SignupSchema';
 import { Prisma } from '@/lib/generateclient';
 import { hash } from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { Session } from 'inspector/promises';
 
 export async function POST(req: NextRequest) {
   try {

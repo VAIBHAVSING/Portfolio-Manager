@@ -1,348 +1,496 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Pie, Bar, Line } from "react-chartjs-2"
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-} from "chart.js"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import axios from 'axios'
+import { Pie, Bar, Line } from 'react-chartjs-2'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title } from 'chart.js'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Loader2, Plus } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title
-)
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title)
 
-// Mock data
-const investmentData = {
-  labels: [
-    "Equity",
-    "Fixed Deposit",
-    "Real Estate",
-    "Gold",
-    "Bonds",
-    "Mutual Funds",
-  ],
-  datasets: [
-    {
-      data: [300000, 200000, 500000, 100000, 150000, 250000],
-      backgroundColor: [
-        "#FF6384",
-        "#36A2EB",
-        "#FFCE56",
-        "#4BC0C0",
-        "#9966FF",
-        "#FF9F40",
-      ],
-    },
-  ],
+type FinanceData = {
+  investments: {
+    labels: string[]
+    datasets: { data: number[]; backgroundColor: string[] }[]
+  }
+  loans: {
+    labels: string[]
+    datasets: { data: number[]; backgroundColor: string[] }[]
+  }
+  expenses: {
+    labels: string[]
+    datasets: { label: string; data: number[]; backgroundColor: string }[]
+  }
+  mutualFunds: { name: string; value: number; todayGain: number; totalGain: number }[]
+  stocks: { name: string; value: number; todayGain: number; totalGain: number }[]
+  netWorthHistory: {
+    labels: string[]
+    datasets: { label: string; data: number[]; borderColor: string; tension: number }[]
+  }
 }
 
-const loanData = {
-  labels: ["Home Loan", "Car Loan", "Personal Loan", "Education Loan"],
-  datasets: [
-    {
-      data: [2000000, 500000, 300000, 1000000],
-      backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"],
-    },
-  ],
-}
+export default function Dashboard() {
+  const [data, setData] = useState<FinanceData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { data: session } = useSession()
 
-const expensesData = {
-  labels: [
-    "Groceries",
-    "Utilities",
-    "Entertainment",
-    "Transportation",
-    "Healthcare",
-  ],
-  datasets: [
-    {
-      label: "Expenses",
-      data: [15000, 10000, 8000, 6000, 5000],
-      backgroundColor: "rgba(75, 192, 192, 0.6)",
-    },
-  ],
-}
+  const [newInvestment, setNewInvestment] = useState({ type: '', amount: '' })
+  const [newExpense, setNewExpense] = useState({ category: '', amount: '' })
+  const [newLoan, setNewLoan] = useState({ type: '', amount: '' })
+  const [newMutualFund, setNewMutualFund] = useState({ name: '', value: '', todayGain: '', totalGain: '' })
+  const [newStock, setNewStock] = useState({ name: '', value: '', todayGain: '', totalGain: '' })
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await axios.get(`/api/finance/${session.user.id}`)
+          setData(response.data)
+        } catch (error) {
+          console.error('Error fetching data:', error)
+          toast({
+            title: 'Error',
+            description: 'Failed to fetch dashboard data',
+            variant: 'destructive',
+          })
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
 
-const mutualFundData = [
-  { name: "Large Cap Fund", value: 100000, todayGain: 1500, totalGain: 15000 },
-  { name: "Mid Cap Fund", value: 75000, todayGain: -500, totalGain: 8000 },
-  { name: "Small Cap Fund", value: 50000, todayGain: 800, totalGain: 5000 },
-  { name: "Debt Fund", value: 80000, todayGain: 200, totalGain: 3000 },
-]
+    fetchData()
+  }, [session])
 
-const stockData = [
-  { name: "Company A", value: 50000, todayGain: 1000, totalGain: 10000 },
-  { name: "Company B", value: 30000, todayGain: -500, totalGain: 5000 },
-  { name: "Company C", value: 20000, todayGain: 300, totalGain: 2000 },
-]
+  const handleAddInvestment = async () => {
+    if (!session?.user?.id) return
+    try {
+      await axios.post(`/api/finance/${session.user.id}/investments`, newInvestment)
+      toast({ title: 'Success', description: 'Investment added successfully' })
+      // Refresh data
+      const response = await axios.get(`/api/finance/${session.user.id}`)
+      setData(response.data)
+      setNewInvestment({ type: '', amount: '' })
+    } catch (error) {
+      console.error('Error adding investment:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add investment',
+        variant: 'destructive',
+      })
+    }
+  }
 
-const netWorthHistory = {
-  labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-  datasets: [
-    {
-      label: "Net Worth",
-      data: [1000000, 1050000, 1100000, 1080000, 1150000, 1200000],
-      borderColor: "rgb(75, 192, 192)",
-      tension: 0.1,
-    },
-  ],
-}
+  const handleAddExpense = async () => {
+    if (!session?.user?.id) return
+    try {
+      await axios.post(`/api/finance/${session.user.id}/expenses`, newExpense)
+      toast({ title: 'Success', description: 'Expense added successfully' })
+      // Refresh data
+      const response = await axios.get(`/api/finance/${session.user.id}`)
+      setData(response.data)
+      setNewExpense({ category: '', amount: '' })
+    } catch (error) {
+      console.error('Error adding expense:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add expense',
+        variant: 'destructive',
+      })
+    }
+  }
 
-export default function InteractiveFinanceDashboard() {
-  const [activeDialog, setActiveDialog] = useState<string | null>(null)
+  const handleAddLoan = async () => {
+    if (!session?.user?.id) return
+    try {
+      await axios.post(`/api/finance/${session.user.id}/loans`, newLoan)
+      toast({ title: 'Success', description: 'Loan added successfully' })
+      // Refresh data
+      const response = await axios.get(`/api/finance/${session.user.id}`)
+      setData(response.data)
+      setNewLoan({ type: '', amount: '' })
+    } catch (error) {
+      console.error('Error adding loan:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add loan',
+        variant: 'destructive',
+      })
+    }
+  }
 
-  const totalInvestments = investmentData?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
-  const totalLoans = loanData?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
-  const totalMutualFunds = mutualFundData?.reduce((sum, fund) => sum + fund.value, 0) || 0;
-  const totalStocks = stockData?.reduce((sum, stock) => sum + stock.value, 0) || 0;
-  const netWorth = totalInvestments + totalMutualFunds + totalStocks - totalLoans;
+  const handleAddMutualFund = async () => {
+    if (!session?.user?.id) return
+    try {
+      await axios.post(`/api/finance/${session.user.id}/mutualfunds`, newMutualFund)
+      toast({ title: 'Success', description: 'Mutual fund added successfully' })
+      // Refresh data
+      const response = await axios.get(`/api/finance/${session.user.id}`)
+      setData(response.data)
+      setNewMutualFund({ name: '', value: '', todayGain: '', totalGain: '' })
+    } catch (error) {
+      console.error('Error adding mutual fund:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add mutual fund',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleAddStock = async () => {
+    if (!session?.user?.id) return
+    try {
+      await axios.post(`/api/finance/${session.user.id}/stocks`, newStock)
+      toast({ title: 'Success', description: 'Stock added successfully' })
+      // Refresh data
+      const response = await axios.get(`/api/finance/${session.user.id}`)
+      setData(response.data)
+      setNewStock({ name: '', value: '', todayGain: '', totalGain: '' })
+    } catch (error) {
+      console.error('Error adding stock:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add stock',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (!data) {
+    return <div className="text-center">No data available</div>
+  }
+
   return (
     <div className="container mx-auto p-4">
-      <Dialog open={!!activeDialog} onOpenChange={() => setActiveDialog(null)}>
-        <h1 className="text-3xl font-bold mb-6">
-          Interactive Personal Finance Dashboard
-        </h1>
+      <h1 className="text-3xl font-bold mb-6">Financial Dashboard</h1>
 
-        <Card className="mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Total Net Worth</CardTitle>
+            <CardTitle>Investments</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold mb-4">
-              ₹{netWorth.toLocaleString()}
-            </div>
-            <Line data={netWorthHistory} options={{ responsive: true }} />
+            <Pie data={data.investments} />
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="mt-4"><Plus className="mr-2 h-4 w-4" />Add Investment</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Investment</DialogTitle>
+                  <DialogDescription>Enter the details of your new investment.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="investment-type" className="text-right">Type</Label>
+                    <Input
+                      id="investment-type"
+                      value={newInvestment.type}
+                      onChange={(e) => setNewInvestment({ ...newInvestment, type: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="investment-amount" className="text-right">Amount</Label>
+                    <Input
+                      id="investment-amount"
+                      type="number"
+                      value={newInvestment.amount}
+                      onChange={(e) => setNewInvestment({ ...newInvestment, amount: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAddInvestment}>Add Investment</Button>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Investments by Sector</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Pie data={investmentData} />
-              <div className="mt-4 text-center">
-                <p className="font-semibold">
-                  Total: ₹{totalInvestments.toLocaleString()}
-                </p>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => setActiveDialog("investments")}
-                  >
-                    View Details
-                  </Button>
-                </DialogTrigger>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Loans</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Pie data={loanData} />
-              <div className="mt-4 text-center">
-                <p className="font-semibold">
-                  Total: ₹{totalLoans.toLocaleString()}
-                </p>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => setActiveDialog("loans")}
-                  >
-                    View Details
-                  </Button>
-                </DialogTrigger>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>This Month's Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Bar
-                data={expensesData}
-                options={{
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                    },
-                  },
-                }}
-              />
-              <div className="mt-4 text-center">
-                <p className="font-semibold">
-                  Total: ₹
-                  {expensesData.datasets[0]?.data
-                    .reduce((a, b) => a + b, 0)
-                    .toLocaleString()}
-                </p>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => setActiveDialog("expenses")}
-                  >
-                    View Details
-                  </Button>
-                </DialogTrigger>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="mt-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Mutual Fund Portfolio</CardTitle>
+            <CardTitle>Loans</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="value">
-              <TabsList>
-                <TabsTrigger value="value">Current Value</TabsTrigger>
-                <TabsTrigger value="todayGain">Today's Gain</TabsTrigger>
-                <TabsTrigger value="totalGain">Total Gain</TabsTrigger>
-              </TabsList>
-              <TabsContent value="value">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fund Name</TableHead>
-                      <TableHead>Current Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mutualFundData.map((fund, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{fund.name}</TableCell>
-                        <TableCell>₹{fund.value.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-              <TabsContent value="todayGain">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fund Name</TableHead>
-                      <TableHead>Today's Gain</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mutualFundData.map((fund, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{fund.name}</TableCell>
-                        <TableCell
-                          className={
-                            fund.todayGain >= 0 ? "text-green-600" : "text-red-600"
-                          }
-                        >
-                          ₹{fund.todayGain.toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-              <TabsContent value="totalGain">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fund Name</TableHead>
-                      <TableHead>Total Gain</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mutualFundData.map((fund, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{fund.name}</TableCell>
-                        <TableCell>₹{fund.totalGain.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-            </Tabs>
+            <Pie data={data.loans} />
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="mt-4"><Plus className="mr-2 h-4 w-4" />Add Loan</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Loan</DialogTitle>
+                  <DialogDescription>Enter the details of your new loan.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="loan-type" className="text-right">Type</Label>
+                    <Input
+                      id="loan-type"
+                      value={newLoan.type}
+                      onChange={(e) => setNewLoan({ ...newLoan, type: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="loan-amount" className="text-right">Amount</Label>
+                    <Input
+                      id="loan-amount"
+                      type="number"
+                      value={newLoan.amount}
+                      onChange={(e) => setNewLoan({ ...newLoan, amount: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAddLoan}>Add Loan</Button>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Bar data={data.expenses} />
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="mt-4"><Plus className="mr-2 h-4 w-4" />Add Expense</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Expense</DialogTitle>
+                  <DialogDescription>Enter the details of your new expense.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="expense-category" className="text-right">Category</Label>
+                    <Input
+                      id="expense-category"
+                      value={newExpense.category}
+                      onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="expense-amount" className="text-right">Amount</Label>
+                    <Input
+                      id="expense-amount"
+                      type="number"
+                      value={newExpense.amount}
+                      onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAddExpense}>Add Expense</Button>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+      </div>
 
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {activeDialog === "investments" && "Investment Details"}
-              {activeDialog === "loans" && "Loan Details"}
-              {activeDialog === "expenses" && "Expense Details"}
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription>
-            <ScrollArea className="h-64">
-              {/* Details content */}
-              {activeDialog === "investments" && (
-                <p>Detailed view of investments...</p>
-              )}
-              {activeDialog === "loans" && <p>Detailed view of loans...</p>}
-              {activeDialog === "expenses" && <p>Detailed view of expenses...</p>}
-            </ScrollArea>
-          </DialogDescription>
-        </DialogContent>
-      </Dialog>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Net Worth History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Line data={data.netWorthHistory} />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Portfolio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="mutualFunds">
+            <TabsList>
+              <TabsTrigger value="mutualFunds">Mutual Funds</TabsTrigger>
+              <TabsTrigger value="stocks">Stocks</TabsTrigger>
+            </TabsList>
+            <TabsContent value="mutualFunds">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Today's Gain</TableHead>
+                    <TableHead>Total Gain</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.mutualFunds.map((fund, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{fund.name}</TableCell>
+                      <TableCell>₹{fund.value.toLocaleString()}</TableCell>
+                      <TableCell className={fund.todayGain >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₹{fund.todayGain.toLocaleString()}
+                      </TableCell>
+                      <TableCell className={fund.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₹{fund.totalGain.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Dialog>
+                <DialogTrigger  asChild>
+                  <Button className="mt-4"><Plus className="mr-2 h-4 w-4" />Add Mutual Fund</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Mutual Fund</DialogTitle>
+                    <DialogDescription>Enter the details of your new mutual fund.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="fund-name" className="text-right">Name</Label>
+                      <Input
+                        id="fund-name"
+                        value={newMutualFund.name}
+                        onChange={(e) => setNewMutualFund({ ...newMutualFund, name: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="fund-value" className="text-right">Value</Label>
+                      <Input
+                        id="fund-value"
+                        type="number"
+                        value={newMutualFund.value}
+                        onChange={(e) => setNewMutualFund({ ...newMutualFund, value: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="fund-today-gain" className="text-right">Today's Gain</Label>
+                      <Input
+                        id="fund-today-gain"
+                        type="number"
+                        value={newMutualFund.todayGain}
+                        onChange={(e) => setNewMutualFund({ ...newMutualFund, todayGain: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="fund-total-gain" className="text-right">Total Gain</Label>
+                      <Input
+                        id="fund-total-gain"
+                        type="number"
+                        value={newMutualFund.totalGain}
+                        onChange={(e) => setNewMutualFund({ ...newMutualFund, totalGain: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleAddMutualFund}>Add Mutual Fund</Button>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+            <TabsContent value="stocks">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Today's Gain</TableHead>
+                    <TableHead>Total Gain</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.stocks.map((stock, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{stock.name}</TableCell>
+                      <TableCell>₹{stock.value.toLocaleString()}</TableCell>
+                      <TableCell className={stock.todayGain >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₹{stock.todayGain.toLocaleString()}
+                      </TableCell>
+                      <TableCell className={stock.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₹{stock.totalGain.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="mt-4"><Plus className="mr-2 h-4 w-4" />Add Stock</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Stock</DialogTitle>
+                    <DialogDescription>Enter the details of your new stock.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="stock-name" className="text-right">Name</Label>
+                      <Input
+                        id="stock-name"
+                        value={newStock.name}
+                        onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="stock-value" className="text-right">Value</Label>
+                      <Input
+                        id="stock-value"
+                        type="number"
+                        value={newStock.value}
+                        onChange={(e) => setNewStock({ ...newStock, value: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="stock-today-gain" className="text-right">Today's Gain</Label>
+                      <Input
+                        id="stock-today-gain"
+                        type="number"
+                        value={newStock.todayGain}
+                        onChange={(e) => setNewStock({ ...newStock, todayGain: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="stock-total-gain" className="text-right">Total Gain</Label>
+                      <Input
+                        id="stock-total-gain"
+                        type="number"
+                        value={newStock.totalGain}
+                        onChange={(e) => setNewStock({ ...newStock, totalGain: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleAddStock}>Add Stock</Button>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

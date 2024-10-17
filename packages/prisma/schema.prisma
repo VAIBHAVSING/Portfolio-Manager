@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["referentialActions"]
 }
 
@@ -15,20 +15,64 @@ datasource db {
 }
 
 model User {
-  id                String        @id @default(cuid())
-  username          String        @unique
-  email             String        @unique
-  password          String
-  name              String
-  createdAt         DateTime      @default(now())
-  token             String?
-  AuthOption        AuthOption
-  watchlists        Watchlist[]
-  alerts            Alert[]
-  sessions          Session[]
-  portfolios        Portfolio[]
-  transactions      Transaction[]
-  orderBookUpdated  DateTime      @default(now())
+  id               String        @id @default(cuid())
+  username         String        @unique
+  email            String        @unique
+  password         String
+  name             String
+  createdAt        DateTime      @default(now())
+  token            String?
+  AuthOption       AuthOption
+  watchlists       Watchlist[]
+  alerts           Alert[]
+  sessions         Session[]
+  portfolios       Portfolio[]
+  transactions     Transaction[]
+  investments       Investment[]
+  loans             Loan[]
+  expenses          Expense[]
+  netWorthHistory   NetWorthHistory[]
+  orderBookUpdated DateTime      @default(now())
+}
+
+model Investment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  amount    Decimal  @db.Decimal(18, 8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Loan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  amount    Decimal  @db.Decimal(18, 8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  amount    Decimal  @db.Decimal(18, 8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NetWorthHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  value     Decimal  @db.Decimal(18, 8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AuthOption {
@@ -47,29 +91,30 @@ model Session {
 }
 
 model Watchlist {
-  id         String     @id @default(cuid())
-  userId     String
-  name       String
-  createdAt  DateTime   @default(now())
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assets     WatchlistAsset[]
+  id        String           @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets    WatchlistAsset[]
 }
 
 model WatchlistAsset {
-  id         String   @id @default(cuid())
+  id          String    @id @default(cuid())
   watchlistId String
-  assetId    Int
-  watchlist  Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
-  asset      Asset     @relation("AssetWatchlist",fields: [assetId], references: [id], onDelete: Cascade)
+  assetId     Int
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  asset       Asset     @relation("AssetWatchlist", fields: [assetId], references: [id], onDelete: Cascade)
 }
 
 model Asset {
-  id           Int          @id @default(autoincrement())
-  assetType    Asset_Type
-  exchange     Exchanges
-  assetSymbol  String
+  id              Int              @id @default(autoincrement())
+  assetType       Asset_Type
+  exchange        Exchanges
+  assetname       String
+  assetSymbol     String
   watchlistAssets WatchlistAsset[] @relation("AssetWatchlist")
-  alerts       Alert[]        @relation("AssetAlert")
+  alerts          Alert[]          @relation("AssetAlert")
 }
 
 enum Asset_Type {
@@ -92,49 +137,51 @@ enum Exchanges {
 }
 
 model Alert {
-  id             String     @id @default(cuid())
-  userId         String
-  alertName      String
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assetId        Int
-  asset          Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade, name: "AssetAlert")
-  conditionType  String
-  targetValue    Decimal    @db.Decimal(18, 8)
-  alertMethod    Alert_Method
-  isActive       Boolean    @default(true)
-  createdAt      DateTime   @default(now())
+  id            String       @id @default(cuid())
+  userId        String
+  alertName     String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetId       Int
+  asset         Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade, name: "AssetAlert")
+  conditionType String
+  targetValue   Decimal      @db.Decimal(18, 8)
+  alertMethod   Alert_Method
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
 }
 
 model Portfolio {
-  id           String      @id @default(cuid())
-  userId       String
-  createdAt    DateTime    @default(now())
-  name         String
-  holdings     Holding[]
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  userId    String
+  createdAt DateTime  @default(now())
+  name      String
+  holdings  Holding[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Holding {
-  id              String      @id @default(cuid())
-  portfolioId     String
-  assetType       Asset_Type
-  exchange        Exchanges
-  assetSymbol     String
-  quantity        Decimal     @db.Decimal(18, 8)
-  averagePrice    Decimal     @db.Decimal(18, 8)
-  createdAt       DateTime    @default(now())
-  orderCompleted  Boolean     @default(false)
-  transactions    Transaction[]
-  portfolio       Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  portfolioId    String
+  assetType      Asset_Type
+  exchange       Exchanges
+  assetSymbol    String
+  quantity       Decimal       @db.Decimal(18, 8)
+  averagePrice   Decimal       @db.Decimal(18, 8)
+  createdAt      DateTime      @default(now())
+  orderCompleted Boolean       @default(false)
+  transactions   Transaction[]
+  todayGain   Decimal  @db.Decimal(18, 8) @default(0)
+  totalGain   Decimal  @db.Decimal(18, 8) @default(0)
+  portfolio      Portfolio     @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
-  id         String     @id @default(cuid())
-  holdingId  String
-  userId     String
-  succeed    Boolean    @default(false)
-  createdAt  DateTime   @default(now())
-  amount     Decimal    @db.Decimal(18, 8)
-  holding    Holding    @relation(fields: [holdingId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  holdingId String
+  userId    String
+  succeed   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  amount    Decimal  @db.Decimal(18, 8)
+  holding   Holding  @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
