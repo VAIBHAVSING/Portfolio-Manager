@@ -22,6 +22,7 @@ model User {
   name             String
   createdAt        DateTime      @default(now())
   token            String?
+  telegramid       String?
   AuthOption       AuthOption
   watchlists       Watchlist[]
   alerts           Alert[]

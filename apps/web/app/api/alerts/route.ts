@@ -1,6 +1,7 @@
 import { Prisma } from '@/lib/generateclient'; // Your Prisma client import
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';  // Optional, for request validation
+import redisPromise, { MyRedisClient } from './controller';
 
 // Define the Zod schema to validate the request body
 const alertSchema = z.object({
@@ -33,8 +34,17 @@ export async function POST(req: NextRequest) {
         alertMethod,
         isActive,
       },
+      select:{
+        id:true,
+        assetId:true,
+        conditionType:true,
+        targetValue:true,
+        isActive:true,
+        alertMethod:true
+      }
     });
-
+    const Redis=await redisPromise;
+    await MyRedisClient.addToQueue(JSON.stringify(newAlert));
     // Respond with the newly created alert
     return NextResponse.json(newAlert, { status: 201 })
   } catch (error) {
@@ -106,8 +116,17 @@ export async function PUT(req: NextRequest) {
         targetValue,
         alertMethod,
         isActive
+      },select:{
+        id:true,
+        assetId:true,
+        conditionType:true,
+        targetValue:true,
+        isActive:true,
+        alertMethod:true
       }
     });
+    const Redis=await redisPromise;
+    await MyRedisClient.addToQueue(JSON.stringify(response));
     return NextResponse.json({msg:"alert updated successful",response});
   } catch (error) {
     if (error instanceof z.ZodError) {

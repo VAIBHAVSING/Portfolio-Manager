@@ -2,9 +2,13 @@
   "name": "bgworker",
   "version": "1.0.0",
   "main": "index.js",
+
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed":"npx nodemon src/seed/seed.ts"
+    "seed":"npx nodemon src/seed/seed.ts",
+    "dev":"npx nodemon src/index.ts",
+    "build":"tsc --b",
+    "start":"node dist/index.js"
   },
   "author": "",
   "license": "ISC",

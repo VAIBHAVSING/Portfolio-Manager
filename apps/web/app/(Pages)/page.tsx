@@ -61,14 +61,13 @@ export default function HomePage() {
 
   if (!data) {
     return <div className="text-center">
-      <Navbar/>
+      {/* <Navbar/> */}
       <h1>No data available</h1>
       </div>
   }
 
   return (
     <div className="container mx-auto p-4">
-      <Navbar/>
       <h1 className="text-4xl font-bold mb-8 text-center">Your Financial Overview</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

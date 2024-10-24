@@ -17,7 +17,7 @@ export default function RootLayout({
   useEffect(() => {
     // Redirect if unauthenticated and session is not loading
     if (status === "unauthenticated") {
-      redirect('/');
+      redirect('/signup');
     }
 
     // Once session is available and if UserAtom is not already set

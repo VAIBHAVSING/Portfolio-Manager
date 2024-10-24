@@ -21,7 +21,6 @@ const navItems = [
   { name: "Dashboard", href: "/dashboard" },
   { name: "Alerts", href: "/alerts" },
   { name: "Watchlist", href: "/watchlist" },
-  { name: "Portfolios", href: "/portfolios" },
 ]
 
 export default function Navbar() {
@@ -44,7 +43,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-24">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
-              <span className="text-4xl font-bold text-primary">Logo</span>
+              <span className="text-4xl font-bold text-primary">Algoxtrader</span>
             </Link>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-6">
